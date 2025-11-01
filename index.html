@@ -1686,6 +1686,28 @@ html:not([data-theme]) #gallery .carousel .nav{
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 24px !important;
 }
+
+
+/* === v49: Mobile gallery improvements === */
+@media (max-width: 800px){
+  /* 25% smaller slides on mobile */
+  #gallery .shots{
+    grid-auto-columns: min(68vw, 420px) !important; /* 0.75 * min(90vw, 560px) */
+    touch-action: pan-y !important; /* allow vertical page scroll; disable horizontal swipe */
+  }
+  #gallery .shot,
+  #gallery .shot img{
+    touch-action: pan-y !important;
+  }
+  /* Keep arrows comfy on mobile */
+  #gallery .carousel .nav{
+    width: 48px; height: 48px;
+  }
+  #gallery .carousel .nav svg{
+    width: 22px; height: 22px;
+  }
+}
+
 </style>
 <meta content="#ffffff" name="theme-color"/><meta content="dark light" name="color-scheme"/></head>
 <body>
@@ -2192,5 +2214,22 @@ window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false)
     }
   }
   ensureScrollable();
+})();</script><script>
+(function(){
+  var car = document.getElementById('galleryCarousel') || document.querySelector('#gallery .carousel');
+  if(!car) return;
+  var prev = car.querySelector('#galPrev, .gal-arrow.prev, .nav.left');
+  var next = car.querySelector('#galNext, .gal-arrow.next, .nav.right');
+  function wire(btn){
+    if(!btn) return;
+    ['touchstart','pointerdown'].forEach(function(ev){
+      btn.addEventListener(ev, function(e){
+        try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+        // trigger the existing click handler reliably
+        btn.click();
+      }, {passive:false});
+    });
+  }
+  wire(prev); wire(next);
 })();</script></body>
 </html>
