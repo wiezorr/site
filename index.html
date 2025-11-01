@@ -1016,6 +1016,16 @@ html:not([data-theme]) .hero-bg{
   transform:none !important;
 }
 
+
+/* === Segmented: ensure left-edge start on mobile === */
+.segmented{
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.segmented::-webkit-scrollbar{ display:none; }
+.segmented .seg-option{ scroll-snap-align: start; }
 </style>
 <meta content="#ffffff" name="theme-color"/><meta content="dark light" name="color-scheme"/></head>
 <body>
@@ -1349,21 +1359,22 @@ html:not([data-theme]) .hero-bg{
   if(!seg) return;
   const opts = Array.from(seg.querySelectorAll('.seg-option'));
   const thumb = seg.querySelector('.seg-thumb');
-  const KEY = 'seg-selected-index';
+  /* storage removed */
 
-  function moveThumbTo(index, animate=true){
-    const el = opts[index];
-    if(!el) return;
-    const r = el.getBoundingClientRect();
-    const pr = seg.getBoundingClientRect();
-    const x = (r.left - pr.left) - 1;
-    const w = r.width + 2;
-    if(!animate){ thumb.style.transition = 'none'; requestAnimationFrame(()=>thumb.style.transition=''); }
-    thumb.style.width = w + 'px';
-    thumb.style.transform = 'translateX(' + x + 'px)';
-    opts.forEach((b,i)=>b.classList.toggle('active', i===index));
-    try{ localStorage.setItem(KEY, String(index)); }catch(e){}
-  }
+  let currentIndex = 0;
+function moveThumbTo(index, animate=true){
+  const el = opts[index];
+  if(!el) return;
+  const segStyles = getComputedStyle(seg);
+  const padLeft = parseFloat(segStyles.paddingLeft)||0;
+  const x = el.offsetLeft - padLeft - 1;
+  const w = el.offsetWidth + 2;
+  if(!animate){ thumb.style.transition = 'none'; requestAnimationFrame(()=>thumb.style.transition=''); }
+  thumb.style.width = w + 'px';
+  thumb.style.transform = 'translateX(' + x + 'px)';
+  opts.forEach((b,i)=>b.classList.toggle('active', i===index));
+  currentIndex = index;
+}
 
   opts.forEach((btn,i)=>{
     const go = ()=>{
@@ -1406,9 +1417,13 @@ html:not([data-theme]) .hero-bg{
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', finish);
 
-  let ix = 0;
-  try { ix = parseInt(localStorage.getItem(KEY)||'0',10) || 0; } catch(e) { ix = 0; }
-  requestAnimationFrame(()=>moveThumbTo(ix, false));
+  const init = ()=>{ seg.scrollLeft = 0; if(opts[0]) opts[0].textContent='О КОМПЛЕКСЕ'; moveThumbTo(0,false); };
+document.addEventListener('DOMContentLoaded', ()=>{ if(seg.parentElement) seg.parentElement.scrollLeft=0; init(); });
+window.addEventListener('load', ()=>{ if(seg.parentElement) seg.parentElement.scrollLeft=0; init(); });
+setTimeout(init, 50);
+setTimeout(init, 250);
+window.addEventListener('resize', ()=>moveThumbTo(currentIndex,false));
+window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false));
 })();
 </script></body>
 </html>
