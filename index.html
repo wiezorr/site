@@ -2114,8 +2114,122 @@ window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false)
   }
   window.addEventListener('load', ensureDefault);
   window.addEventListener('orientationchange', ensureDefault);
-})();</script><script>
-(function(){
+})();</script><script>(function(){
+  const root = document.getElementById('gallery') || document.querySelector('section#gallery');
+  const car  = document.getElementById('galleryCarousel') || (root && root.querySelector('.carousel'));
+  const shots= document.getElementById('galShots') || (car && car.querySelector('.shots'));
+  if(!root || !car || !shots) return;
+  const items= Array.from(shots.querySelectorAll('.shot'));
+  if(!items.length) return;
+
+  const btnPrev = car.querySelector('.gal-arrow.prev, .nav.left');
+  const btnNext = car.querySelector('.gal-arrow.next, .nav.right');
+
+  function gap(){ const s = getComputedStyle(shots); return parseFloat(s.columnGap || s.gap || 16) || 16; }
+  function step(){
+    const first = items[0];
+    const second= items[1];
+    if(first && second){
+      const d = second.getBoundingClientRect().left - first.getBoundingClientRect().left;
+      if(Math.abs(d) > 10) return Math.round(d);
+    }
+    return Math.round((items[0]?.getBoundingClientRect().width || shots.clientWidth) + gap());
+  }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function currentIndex(){
+    const st = step();
+    return Math.round(shots.scrollLeft / st);
+  }
+
+  function scrollToIndex(idx){
+    const st = step();
+    const x = clamp(idx,0,items.length-1)*st;
+    try{
+      shots.scrollTo({left:x, behavior:'smooth'});
+      setTimeout(()=>{ if(Math.abs(shots.scrollLeft - x) > 2) animateTo(x); }, 140);
+    }catch(e){ animateTo(x); }
+  }
+  function animateTo(x){
+    const start = shots.scrollLeft; const dist = x - start; const dur = 300; let t0=null;
+    function f(ts){ if(!t0) t0=ts; const p = Math.min(1, (ts-t0)/dur); const ease = 0.5 - Math.cos(Math.PI*p)/2;
+      shots.scrollLeft = start + dist*ease; if(p<1) requestAnimationFrame(f); }
+    requestAnimationFrame(f);
+  }
+
+  function go(dir){ const ni = clamp(currentIndex()+dir,0,items.length-1); scrollToIndex(ni); }
+
+  // Strongly bind multiple input methods
+  const press = (dir, e)=>{ e.preventDefault(); e.stopPropagation(); go(dir); };
+  ['click','pointerdown','touchstart','mousedown'].forEach(ev=>{
+    if(btnPrev) btnPrev.addEventListener(ev, press.bind(null,-1), {passive:false});
+    if(btnNext) btnNext.addEventListener(ev, press.bind(null, 1), {passive:false});
+  });
+
+  // Document-level delegation in case arrows are re-rendered later
+  document.addEventListener('click', (e)=>{
+    if(e.target.closest && e.target.closest('#gallery .gal-arrow.prev, .nav.left')){ press(-1,e); }
+    if(e.target.closest && e.target.closest('#gallery .gal-arrow.next, .nav.right')){ press( 1,e); }
+  }, true);
+
+  // Keyboard
+  (root).addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowLeft'){ press(-1,e); }
+    if(e.key==='ArrowRight'){ press(1,e); }
+  });
+
+  // Wheel horizontal (shift or touchpad)
+  shots.addEventListener('wheel', (e)=>{
+    if(Math.abs(e.deltaY) > Math.abs(e.deltaX)){ shots.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, {passive:false});
+
+  // Drag / swipe manually
+  let down=false, sx=0, sl=0, moved=false;
+  const onDown = (e)=>{ down=true; moved=false; sx=(e.touches?e.touches[0].clientX:e.clientX); sl=shots.scrollLeft; };
+  const onMove = (e)=>{
+    if(!down) return;
+    const x=(e.touches?e.touches[0].clientX:e.clientX);
+    const dx=sx-x; if(Math.abs(dx)>2) moved=true;
+    shots.scrollLeft = sl + dx;
+    e.preventDefault();
+  };
+  const onUp = (e)=>{
+    if(!down) return; down=false;
+    const idx = currentIndex();
+    scrollToIndex(idx);
+  };
+  shots.addEventListener('pointerdown', onDown, {passive:false});
+  shots.addEventListener('touchstart', onDown, {passive:false});
+  shots.addEventListener('mousedown', onDown, {passive:false});
+  window.addEventListener('pointermove', onMove, {passive:false});
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('mousemove', onMove, {passive:false});
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('touchend', onUp);
+  window.addEventListener('mouseup', onUp);
+
+  // If container accidentally not scrollable (content fits), still move via transform fallback
+  function ensureScrollable(){
+    if(shots.scrollWidth <= shots.clientWidth){
+      // Transform fallback: wrap inner in a mover
+      if(!shots.querySelector('.mover')){
+        const mover = document.createElement('div');
+        mover.className = 'mover';
+        while(shots.firstChild){ mover.appendChild(shots.firstChild); }
+        shots.appendChild(mover);
+      }
+      const mover = shots.querySelector('.mover');
+      let idx = 0;
+      function moveTo(i){
+        const w = car.clientWidth; idx = clamp(i,0,items.length-1);
+        mover.style.transform = 'translateX(' + (-idx*w) + 'px)';
+        mover.style.transition = 'transform .3s ease';
+      }
+      if(btnPrev) btnPrev.onclick = ()=> moveTo(idx-1);
+      if(btnNext) btnNext.onclick = ()=> moveTo(idx+1);
+    }
+  }
+  ensureScrollable();
+})();</script><script>(function(){
   var car = document.getElementById('galleryCarousel') || document.querySelector('#gallery .carousel');
   if(!car) return;
   var prev = car.querySelector('#galPrev, .gal-arrow.prev, .nav.left');
