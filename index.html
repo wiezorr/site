@@ -2127,5 +2127,139 @@ window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false)
   }
   window.addEventListener('load', ensureDefault);
   window.addEventListener('orientationchange', ensureDefault);
-})();</script><script defer="True" src="gallery-v54.js"></script></body>
+})();</script><script>
+(function(){
+  // Prevent double init
+  if (window.__GALLERY_V54_INITED__) return;
+  window.__GALLERY_V54_INITED__ = true;
+
+  function bySel(root, sel){ return (root || document).querySelector(sel); }
+  function init(){
+    var root = document.getElementById('gallery') || document.querySelector('section#gallery');
+    if(!root) return false;
+    var car  = document.getElementById('galleryCarousel') || root.querySelector('.carousel');
+    var shots= document.getElementById('galShots') || (car && car.querySelector('.shots'));
+    if(!car || !shots) return false;
+
+    var prev = car.querySelector('#galPrev, .nav.left, .gal-arrow.prev');
+    var next = car.querySelector('#galNext, .nav.right, .gal-arrow.next');
+
+    function getGap(){
+      var cs = getComputedStyle(shots);
+      var g = parseFloat(cs.columnGap || cs.gap || 16);
+      return isNaN(g) ? 16 : g;
+    }
+    function getStep(){
+      var first = shots.querySelector('.shot');
+      var second= first && first.nextElementSibling;
+      if(first && second){
+        var d = second.getBoundingClientRect().left - first.getBoundingClientRect().left;
+        if(Math.abs(d) > 10) return Math.round(d);
+      }
+      var w = first ? first.getBoundingClientRect().width : shots.clientWidth;
+      return Math.round(w + getGap());
+    }
+    function scrollByStep(dir){
+      var st = getStep();
+      var target = Math.round((shots.scrollLeft + dir*st) / st) * st;
+      try{ shots.scrollTo({left: target, behavior:'smooth'}); }
+      catch(e){ shots.scrollLeft = target; }
+    }
+
+    function bindClicks(btn, dir){
+      if(!btn) return;
+      btn.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        scrollByStep(dir);
+      }, true);
+      // Map touchstart/pointerdown -> click for instant response on mobile
+      ['touchstart','pointerdown'].forEach(function(ev){
+        btn.addEventListener(ev, function(e){
+          try{ e.preventDefault(); e.stopPropagation(); }catch(_){}
+          btn.click();
+        }, {passive:false});
+      });
+    }
+    bindClicks(prev, -1);
+    bindClicks(next,  1);
+
+    // Keyboard navigation (when section is focused)
+    (car.closest('section') || car).addEventListener('keydown', function(e){
+      if(e.key === 'ArrowLeft'){ scrollByStep(-1); }
+      if(e.key === 'ArrowRight'){ scrollByStep( 1); }
+    });
+
+    // Mobile swipe with direction detection (keeps vertical scroll)
+    var touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    if(touchCapable){
+      var startX=0, startY=0, decided=false, mode=null, t0=0;
+      var threshold = 40; // px
+      function onDown(e){
+        var p = e.touches ? e.touches[0] : e;
+        startX = p.clientX; startY = p.clientY;
+        decided=false; mode=null; t0=Date.now();
+      }
+      function onMove(e){
+        if(startX==null) return;
+        var p = e.touches ? e.touches[0] : e;
+        var dx = p.clientX - startX;
+        var dy = p.clientY - startY;
+        if(!decided){
+          if(Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)*1.2){ mode='x'; decided=true; }
+          else if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)*1.2){ mode='y'; decided=true; }
+        }
+        if(mode === 'x'){
+          e.preventDefault(); e.stopPropagation();
+        }
+      }
+      function onUp(e){
+        if(startX==null) return;
+        var p = (e.changedTouches && e.changedTouches[0]) || e;
+        var dx = p.clientX - startX;
+        if(mode === 'x'){
+          if(dx <= -threshold && next){ next.click(); }
+          else if(dx >= threshold && prev){ prev.click(); }
+        }
+        startX=null; startY=null; decided=false; mode=null;
+      }
+      shots.addEventListener('touchstart', onDown, {passive:true});
+      shots.addEventListener('pointerdown', onDown, {passive:true});
+      shots.addEventListener('touchmove', onMove, {passive:false});
+      shots.addEventListener('pointermove', onMove, {passive:false});
+      shots.addEventListener('touchend', onUp);
+      shots.addEventListener('pointerup', onUp);
+    }
+
+    return true;
+  }
+
+  function boot(){
+    if(init()) return;
+    // Retry after DOM is ready
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', init, {once:true});
+    } else {
+      // If still not found, retry shortly (for hosts that inject content late)
+      setTimeout(init, 100);
+      setTimeout(init, 400);
+    }
+    window.addEventListener('load', init, {once:true});
+  }
+
+  boot();
+
+  // Re-init if gallery DOM changes on host
+  var mo;
+  try{
+    mo = new MutationObserver(function(muts){
+      for (var i=0;i<muts.length;i++){
+        if(muts[i].type === 'childList' || muts[i].type === 'attributes'){
+          init();
+          break;
+        }
+      }
+    });
+    mo.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter: ['class','data-theme']});
+  }catch(_){}
+})();</script></body>
 </html>
