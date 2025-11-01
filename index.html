@@ -1032,7 +1032,7 @@ html:not([data-theme]) .hero-bg{
 
 /* === Hero dimming scoped to Light + Glass only === */
 :root[data-theme="light"] .hero .hero-bg{ filter: brightness(1.12) saturate(1.10) !important; }
-:root[data-theme="glass"] .hero .hero-bg, html.theme-glass .hero .hero-bg{ filter: brightness(0.75) saturate(1.10) !important; }
+:root[data-theme="glass"] .hero .hero-bg, html.theme-glass .hero .hero-bg{ filter: brightness(0.5) saturate(1.10) !important; }
 
 </style>
 <meta content="#ffffff" name="theme-color"/><meta content="dark light" name="color-scheme"/></head>
@@ -1319,7 +1319,7 @@ html:not([data-theme]) .hero-bg{
 <script>
 (function(){
   const root = document.documentElement;
-  const KEY = 'site-theme';
+  const KEY='site-theme'; try{localStorage.removeItem(KEY);}catch(e){}
   const metaTheme = document.querySelector('meta[name="theme-color"]');
 
   function setTheme(mode){
@@ -1348,7 +1348,7 @@ html:not([data-theme]) .hero-bg{
 
   const stored = (function(){ try { return localStorage.getItem(KEY); } catch(e){ return null; } })();
   // Default to LIGHT when nothing stored:
-  setTheme(stored || 'light');
+  setTheme('light');
 
   document.querySelectorAll('.theme-picker-bar .swatch').forEach(btn => {
     const set = () => setTheme(btn.dataset.themeValue);
@@ -1432,6 +1432,22 @@ setTimeout(init, 50);
 setTimeout(init, 250);
 window.addEventListener('resize', ()=>moveThumbTo(currentIndex,false));
 window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false));
+})();
+</script><script>
+(function(){
+  function atTop(){
+    try{
+      window.scrollTo(0,0);
+      document.scrollingElement.scrollTop = 0;
+      if (history.scrollRestoration) history.scrollRestoration = 'manual';
+    }catch(e){}
+  }
+  // Run several times to fight iOS reflow
+  document.addEventListener('DOMContentLoaded', atTop);
+  window.addEventListener('load', atTop);
+  setTimeout(atTop, 50);
+  setTimeout(atTop, 250);
+  setTimeout(atTop, 600);
 })();
 </script></body>
 </html>
