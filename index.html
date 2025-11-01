@@ -1723,6 +1723,9 @@ html:not([data-theme]) #gallery .carousel .nav{
 #gallery, #gallery *{ touch-action: auto; }
 #gallery .shots, #gallery .shot, #gallery .shot *{ touch-action: pan-y; }
 
+
+/* v54 swipe */
+#gallery .shots, #gallery #galShots{ touch-action: pan-y; }
 </style>
 <meta content="#ffffff" name="theme-color"/><meta content="dark light" name="color-scheme"/></head>
 <body>
@@ -2244,5 +2247,65 @@ window.addEventListener('orientationchange', ()=>moveThumbTo(currentIndex,false)
     });
   }
   bind(prev); bind(next);
+})();</script><script>
+// v54: mobile swipe gestures with direction detection (keeps vertical scroll)
+(function(){
+  var car  = document.getElementById('galleryCarousel') || document.querySelector('#gallery .carousel');
+  var shots= document.getElementById('galShots') || (car && car.querySelector('.shots'));
+  if(!car || !shots) return;
+  var prev = car.querySelector('#galPrev, .nav.left, .gal-arrow.prev');
+  var next = car.querySelector('#galNext, .nav.right, .gal-arrow.next');
+
+  // Only enable on touch-capable devices
+  var touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if(!touchCapable) return;
+
+  var startX=0, startY=0, decided=false, mode=null; // mode: 'x' or 'y'
+  var threshold = 40; // px to trigger slide
+  var maxTapTime = 250;
+  var t0 = 0;
+
+  function onDown(e){
+    var p = e.touches ? e.touches[0] : e;
+    startX = p.clientX; startY = p.clientY;
+    decided = false; mode = null; t0 = Date.now();
+  }
+  function onMove(e){
+    if(startX===null) return;
+    var p = e.touches ? e.touches[0] : e;
+    var dx = p.clientX - startX;
+    var dy = p.clientY - startY;
+    if(!decided){
+      if(Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)*1.2){
+        mode = 'x'; decided = true;
+      }else if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)*1.2){
+        mode = 'y'; decided = true;
+      }
+    }
+    if(mode === 'x'){
+      // We control horizontal, keep page vertical scroll working by preventing default only in this branch
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+  function onUp(e){
+    if(startX===null) return;
+    var p = (e.changedTouches && e.changedTouches[0]) || e;
+    var dx = p.clientX - startX;
+    var dt = Date.now() - t0;
+    // Quick horizontal swipe or long enough move
+    if(mode === 'x' || (Math.abs(dx) > threshold && dt < 800)){
+      if(dx <= -threshold && next){ next.click(); }
+      else if(dx >= threshold && prev){ prev.click(); }
+    }
+    startX = null; startY = null; decided = false; mode = null;
+  }
+
+  shots.addEventListener('touchstart', onDown, {passive:true});
+  shots.addEventListener('pointerdown', onDown, {passive:true});
+  shots.addEventListener('touchmove', onMove, {passive:false});
+  shots.addEventListener('pointermove', onMove, {passive:false});
+  shots.addEventListener('touchend', onUp);
+  shots.addEventListener('pointerup', onUp);
 })();</script></body>
 </html>
