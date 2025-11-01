@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="ru">
+<html class="theme-light" data-theme="light" lang="ru">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
@@ -133,52 +133,62 @@
   @media (hover:none){ .carousel .nav{display:none !important} }
 
 
-/* === Theme switcher (only backgrounds + base text) === */
-:root[data-theme="light"]{
+/* === Light Theme & Theme Picker (final) === */
+
+/* Light theme variables: only backgrounds + base text tone */
+:root[data-theme="light"],
+html.theme-light{
   --bg:#ffffff;
   --panel:#ffffff;
   --panel-2:#ffffff;
   --text:#111111;
   --muted:#555555;
 }
+
+/* Picker bar below quick menu */
 .theme-picker-bar{display:flex;align-items:center;gap:10px;margin-top:10px}
-.theme-picker-bar .theme-label{font-family:'Forum',serif;text-transform:uppercase;letter-spacing:.6px;font-size:13px;opacity:.9}
+.theme-picker-bar .theme-label{font-family:'Forum',serif;text-transform:uppercase;letter-spacing:.6px;font-size:13px;opacity:.95}
 .theme-picker-bar .swatch{width:22px;height:22px;border-radius:6px;border:1px solid var(--stroke);box-shadow:var(--shadow);cursor:pointer}
 .theme-picker-bar .swatch--dark{background:#0e0a08}
 .theme-picker-bar .swatch--light{background:#ffffff}
 .theme-picker-bar .swatch.active{outline:2px solid var(--gold-2);outline-offset:2px}
 
-/* Light theme tweaks: islands & overlays */
-:root[data-theme="light"] .score{
-  background:#ffffff;
-  border:1px solid #000000;
-}
-:root[data-theme="light"] .price-card{
-  background:#ffffff;
-  border:1px solid #000000;
-}
-:root[data-theme="light"] .special-offer-card{
-  background:#ffffff;
-  border:1px solid #bdbdbd; /* gray border for special offer */
-}
+/* Make the label white on light theme (per request) */
+:root[data-theme="light"] .theme-picker-bar .theme-label,
+html.theme-light .theme-picker-bar .theme-label{ color:#ffffff; }
 
-/* Make menu text and hero overlay text white in light theme */
-:root[data-theme="light"] .topbar .row2 .quicklink{ color:#ffffff; }
-:root[data-theme="light"] .brand-title{ color:#ffffff; }
+/* Islands styling in light theme */
+:root[data-theme="light"] .score,
+html.theme-light .score{ background:#ffffff; border:1px solid #000000 !important; }
+
+:root[data-theme="light"] .price-card,
+html.theme-light .price-card{ background:#ffffff; border:1px solid #000000 !important; }
+
+:root[data-theme="light"] .special-offer-card,
+html.theme-light .special-offer-card{ background:#ffffff; border:1px solid #bdbdbd !important; }
+
+:root[data-theme="light"] .map-card,
+html.theme-light .map-card{ background:#ffffff !important; border:1px solid #000000 !important; border-radius:16px !important; }
+
+/* Menu (quick links) over hero image should be white in light theme */
+:root[data-theme="light"] .topbar .row2 .quicklink,
+html.theme-light .topbar .row2 .quicklink{ color:#ffffff !important; }
+
+/* Brand title "Русская Усадьба" at the top should be white in light theme */
+:root[data-theme="light"] .brand-title,
+html.theme-light .brand-title{ color:#ffffff !important; }
+
+/* Hero text over the image should be white in light theme */
 :root[data-theme="light"] .hero .hero-content,
 :root[data-theme="light"] .hero .hero-content h1,
 :root[data-theme="light"] .hero .hero-content p,
-:root[data-theme="light"] .hero .hero-content .kicker{ color:#ffffff; }
-
-/* Light theme: map island white with black border; theme picker label white */
-:root[data-theme="light"] .map-card{
-  background:#ffffff !important;
-  border:1px solid #000000 !important;
-  border-radius:16px !important;
-}
-:root[data-theme="light"] .theme-picker-bar .theme-label{ color:#ffffff; }
+:root[data-theme="light"] .hero .hero-content .kicker,
+html.theme-light .hero .hero-content,
+html.theme-light .hero .hero-content h1,
+html.theme-light .hero .hero-content p,
+html.theme-light .hero .hero-content .kicker{ color:#ffffff !important; }
 </style>
-<meta content="#0e0a08" name="theme-color"/></head>
+<meta content="#ffffff" name="theme-color"/><meta content="dark light" name="color-scheme"/></head>
 <body>
 <div class="topbar" id="topbar">
 <div class="container row1">
@@ -465,6 +475,7 @@
     })();
 
   </script>
+
 <script>
 (function(){
   const root = document.documentElement;
@@ -474,8 +485,10 @@
   function setTheme(mode){
     if(mode === 'light'){
       root.setAttribute('data-theme','light');
+      root.classList.add('theme-light');
     } else {
       root.removeAttribute('data-theme');
+      root.classList.remove('theme-light');
       mode = 'dark';
     }
     document.querySelectorAll('.theme-picker-bar .swatch').forEach(b=>{
@@ -489,12 +502,17 @@
   }
 
   const stored = (function(){ try { return localStorage.getItem(KEY); } catch(e){ return null; } })();
-  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-  setTheme(stored || (prefersLight ? 'light' : 'dark'));
+  // Default to LIGHT when nothing stored:
+  setTheme(stored || 'light');
 
   document.querySelectorAll('.theme-picker-bar .swatch').forEach(btn => {
-    btn.addEventListener('click', () => setTheme(btn.dataset.themeValue));
-    btn.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setTheme(btn.dataset.themeValue); }});
+    const set = () => setTheme(btn.dataset.themeValue);
+    btn.addEventListener('click', set);
+    btn.addEventListener('pointerup', set);
+    btn.addEventListener('touchend', set, {passive:true});
+    btn.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); set(); }
+    });
   });
 })();
 </script>
